@@ -136,7 +136,7 @@ function completa(p,extra){
   b.onclick=async()=>{
     if(!ultima){S.i++;disegna();return}
     b.disabled=true;b.textContent='Sto salvando...';
-    try{S.esito=await api('consegna',{codice:S.codice,email:S.email,corso:S.corso,tentativi:S.tentativi,scritto:S.scritto});S.i++;disegna()}
+    try{S.esito=await api('consegna',{codice:S.codice,email:S.email,corso:S.corso,tentativi:S.tentativi,scritto:S.scritto,sito:S.sito,durata:Math.round((Date.now()-S.inizio)/1000)});S.i++;disegna()}
     catch(e){b.disabled=false;b.textContent='Riprova a salvare';errore(r,e&&e.message)}
   };
   r.append(b);c.append(r);b.focus({preventScroll:true});
@@ -146,13 +146,13 @@ function intro(a){
   '<p>Nonna Lucia ha trovato una scatola di ricordi e una lettera mai aperta. Aiutala a rimettere in ordine i ricordi: alla fine scopri cosa c\'era scritto.</p>'+
   '<div class="nonna"><b>Cinque prove, circa 10 minuti.</b> Alla fine saprai raccontare il passato usando imperfetto e passato prossimo.</div>'+
   '<div class="list"><label for="code">Il tuo codice</label><input class="field" id="code" maxlength="4" autocomplete="off"><p class="bg" lang="bg">Първите 2 букви от името и първите 2 от фамилията (Иван Иванов = IVIV).</p>'+
-  '<label for="mail">La tua email, per ricevere la nota</label><input class="field wide" id="mail" type="email" autocomplete="email"></div>'+
+  '<label for="mail">La tua email, per ricevere la nota</label><input class="field wide" id="mail" type="email" autocomplete="email"><input id="sito" name="sito" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px"></div>'+
   '<details><summary>Chi corregge? Dove vanno le risposte?</summary><p class="bg" lang="bg">Този тест се проверява отчасти от автоматична система с изкуствен интелект. Обясненията и точките по упражненията получаваш веднага, но те не са написани от учителя или учителката.</p><p class="bg" lang="bg">Записите и отговорите се изтриват от нашата система след проверката. Писмените отговори се обработват от външни услуги с изкуствен интелект, включително Google, които могат да ги запазят и използват за подобряване на услугите си. Затова в отговорите не пиши лични данни. Имейлът ти не се предава на тези услуги.</p><p class="fine">Pagina di prova: usa solo dati inventati.</p></details>'+
   '<div id="err"></div><button class="go" id="begin">Apri la scatola</button></section>';
   $('#begin').onclick=()=>{
     const c=$('#code').value.trim().toUpperCase(),m=$('#mail').value.trim();
     if(!/^[A-ZА-Я]{2,4}$/.test(c)||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)){$('#err').innerHTML='<div class="fb bad">Scrivi il codice di 4 lettere e la tua email.</div>';return}
-    S.codice=c;S.email=m;S.i=0;S.inizio=Date.now();disegna();
+    S.codice=c;S.email=m;S.i=0;S.inizio=Date.now();S.sito=$('#sito').value;disegna();
   };
 }
 function chiusa(a,p){
@@ -243,6 +243,6 @@ function fine(a){
 }
 disegna();
 S.corso=new URLSearchParams(location.search).get('corso')||'';
-api('leggiCompito').then(t=>{S.T=t;disegna()}).catch(()=>{$('#app').innerHTML='<section class="card"><div class="fb bad">La pagina non si è aperta. Ricarica tra poco.</div></section>'});
+api('leggiCompito',S.corso).then(t=>{if(!t.corsoValido){$('#app').innerHTML='<section class="card"><div class="fb bad">Questo link non è valido. Usa quello dell\'insegnante in Classroom.</div></section>';return}S.T=t;disegna()}).catch(()=>{$('#app').innerHTML='<section class="card"><div class="fb bad">La pagina non si è aperta. Ricarica tra poco.</div></section>'});
 </script>
 </body></html>
