@@ -78,6 +78,8 @@ audio{width:100%}
 .confetti{position:fixed;top:-14px;width:9px;height:14px;border-radius:2px;z-index:20;pointer-events:none;animation:fall 2.4s ease-in forwards}
 @keyframes fall{to{transform:translateY(105vh) rotate(420deg);opacity:.2}}
 @media (prefers-reduced-motion:reduce){.slot.full.pop,.nonna,.fb,.helper{animation:none}.confetti{display:none}}
+.box{display:flex;justify-content:center;gap:10px}
+.slot{width:48px;flex:none}
 </style></head>
 <body>
 <div class="wrap">
@@ -108,6 +110,18 @@ const api=async(azione,...argomenti)=>{
 };
 
 
+/* Correzione nella pagina, per rispondere subito. Le stesse regole stanno in Codice.gs, che ricalcola i punti alla consegna. */
+const CIR={'а':'a','е':'e','о':'o','р':'p','с':'c','х':'x','у':'y','і':'i','м':'m','т':'t','к':'k','н':'h','в':'b'};
+const pulisci=x=>String(x).toLowerCase().replace(/[аеорсхуімткнв]/g,c=>CIR[c]).replace(/[’`´]/g,"'").replace(/\be'\s*/g,'è ').replace(/\s+/g,' ').trim();
+const senzaAccenti=x=>x.normalize('NFD').replace(/[̀-ͯ]/g,'');
+function distanza(a,b){const d=[];for(let i=0;i<=a.length;i++)d[i]=[i];for(let j=1;j<=b.length;j++)d[0][j]=j;for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return d[a.length][b.length]}
+function giudica(z,v){const n=pulisci(v);
+  if(n===z.ok)return{ok:true};
+  if(senzaAccenti(n)===senzaAccenti(z.ok))return{ok:true,nota:'Giusto! Ricordati solo l\'accento: «'+z.ok+'».'};
+  if(z.accettate&&z.accettate[n])return{ok:true,nota:z.accettate[n]};
+  for(const k in z.noti)if(senzaAccenti(n)===senzaAccenti(k))return{ok:false,nota:z.noti[k]};
+  if(n.length>=5&&distanza(senzaAccenti(n),senzaAccenti(z.ok))<=1)return{ok:true,nota:'Giusto, c\'è solo un piccolo refuso: «'+z.ok+'».'};
+  return{ok:false,nota:z.suggerimento}}
 function scatola(){
   if(!S.T){$('#box').innerHTML='';return}
   $('#box').innerHTML=S.T.prove.map((p,k)=>{const f=S.fatte[p.id];return '<div class="slot'+(f?' full':'')+(S.pop===k?' pop':'')+(S.i===k&&!f?' now':'')+'" role="img" aria-label="'+esc(f?p.ricordo:'Ricordo ancora da trovare')+'">'+IC[ICONE[p.id]]+'</div>'}).join('');
@@ -161,11 +175,9 @@ function chiusa(a,p){
   if(p.domanda){const q=document.createElement('p');q.innerHTML='<b>'+esc(p.domanda)+'</b>';c.append(q)}
   const l=document.createElement('div');l.className='list',fb=document.createElement('div');let finita=false;
   p.opzioni.forEach((t,k)=>{const b=document.createElement('button');b.className='opt';b.textContent=t;
-    b.onclick=async()=>{if(finita||b.disabled)return;b.disabled=true;
-      try{const r=await api('controllaChiusa',p.id,k);S.tentativi[p.id].push(k);
-        if(r.ok){finita=true;b.classList.add('right');fb.className='fb good';fb.textContent=r.messaggio;completa(p)}
-        else{b.classList.add('wrong');fb.className='fb bad';fb.textContent=r.messaggio}
-      }catch(e){b.disabled=false;fb.className='fb bad';fb.textContent='Controlla la connessione e riprova.'}};
+    b.onclick=()=>{if(finita||b.disabled)return;b.disabled=true;S.tentativi[p.id].push(k);
+      if(k===p.giusta){finita=true;b.classList.add('right');fb.className='fb good';fb.textContent=p.bene;completa(p)}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent=p.male}};
     l.append(b)});
   c.append(l,fb);a.append(c);
 }
@@ -173,12 +185,10 @@ function collegamenti(a,p){
   const c=scheda(p),w=document.createElement('div');w.className='pairs';const L=document.createElement('div'),R=document.createElement('div'),fb=document.createElement('div');let sel=null,fatte=0;
   p.inizi.forEach((t,k)=>{const b=document.createElement('button');b.className='opt';b.textContent=t;b.dataset.k=k;b.onclick=()=>{if(b.disabled)return;L.querySelectorAll('.sel').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');sel=b};L.append(b)});
   p.fini.forEach(t=>{const b=document.createElement('button');b.className='opt';b.textContent=t;
-    b.onclick=async()=>{if(!sel){fb.className='fb bad';fb.textContent='Prima tocca un inizio di frase.';return}
-      const s=sel,k=+s.dataset.k;
-      try{const r=await api('controllaCoppia',k,t);S.tentativi.logica.push([k,t]);
-        if(r.ok){s.classList.remove('sel');s.classList.add('right','done');s.disabled=true;b.classList.add('right','done');b.disabled=true;sel=null;fatte++;fb.className='fb good';fb.textContent=r.messaggio;if(fatte===p.inizi.length)completa(p)}
-        else{fb.className='fb bad';fb.textContent=r.messaggio}
-      }catch(e){fb.className='fb bad';fb.textContent='Controlla la connessione e riprova.'}};
+    b.onclick=()=>{if(!sel){fb.className='fb bad';fb.textContent='Prima tocca un inizio di frase.';return}
+      const s=sel,k=+s.dataset.k,c=p.coppie[k];S.tentativi.logica.push([k,t]);
+      if(c[1]===t){s.classList.remove('sel');s.classList.add('right','done');s.disabled=true;b.classList.add('right','done');b.disabled=true;sel=null;fatte++;fb.className='fb good';fb.textContent=c[2];if(fatte===p.inizi.length)completa(p)}
+      else{fb.className='fb bad';fb.textContent='Il significato non torna. Prova un\'altra fine per questa frase.'}};
     R.append(b)});
   w.append(L,R);c.append(w,fb);a.append(c);
 }
@@ -191,16 +201,15 @@ function verbi(a,p){
   hr.append(hb);c.append(hr,hbox);
   const fb=document.createElement('div');fb.className='list',go=document.createElement('button');go.className='go';go.textContent='Controlla';
   const st=p.verbi.map(()=>({n:0,fatto:false}));
-  go.onclick=async()=>{go.disabled=true;fb.innerHTML='';let aperti=0;
-    try{for(let k=0;k<p.verbi.length;k++){const i=$('#b'+k),z=st[k];if(z.fatto)continue;if(!i.value.trim()){aperti++;continue}
+  go.onclick=()=>{fb.innerHTML='';let aperti=0;
+    for(let k=0;k<p.verbi.length;k++){const i=$('#b'+k),z=st[k];if(z.fatto)continue;if(!i.value.trim()){aperti++;continue}
         z.n++;(S.tentativi.verbi[k]=S.tentativi.verbi[k]||[]).push(i.value);
-        const r=await api('controllaVerbo',k,i.value,z.n);const n=document.createElement('div');
+        const r=giudica(p.spazi[k],i.value);if(!r.ok&&z.n>=2)r.soluzione=p.spazi[k].ok;const n=document.createElement('div');
         if(r.ok){z.fatto=true;i.classList.remove('no');i.classList.add('ok');i.readOnly=true;if(r.nota){n.className='fb good';n.textContent=r.nota;fb.append(n)}}
         else if(r.soluzione){z.fatto=true;i.value=r.soluzione;i.classList.remove('no');i.classList.add('ok');i.readOnly=true;n.className='fb bad';n.textContent='La forma giusta è «'+r.soluzione+'». '+r.nota;fb.append(n)}
         else{i.classList.add('no');aperti++;n.className='fb bad';n.textContent=r.nota+' Riprova.';fb.append(n)}}
-      if(aperti){go.disabled=false;if(!fb.children.length){const n=document.createElement('div');n.className='fb bad';n.textContent='Scrivi tutti i verbi, poi controlla.';fb.append(n)}return}
-      go.hidden=true;hb.disabled=true;completa(p);
-    }catch(e){go.disabled=false;errore(fb)}};
+      if(aperti){if(!fb.children.length){const n=document.createElement('div');n.className='fb bad';n.textContent='Scrivi tutti i verbi, poi controlla.';fb.append(n)}return}
+      go.hidden=true;hb.disabled=true;completa(p);};
   c.append(fb,go);a.append(c);
 }
 const REFUSI={perche:'perché',piu:'più',citta:'città',gia:'già',pero:'però',cosi:'così',puo:'può',caffe:'caffè',anche_si:'anche se'};
