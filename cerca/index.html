@@ -478,7 +478,7 @@ function hitHTML(it,d,toks){
     const mnBtn=mnShow?`<button class="btn ghost add add-un" aria-pressed="${mnOn}" data-k="${d[8]}" data-a="${mn[0]}" data-b="${mn[1]}" data-l="${esc(mn[2])}" title="${esc(mn[2])}">${mnOn?'✓ Mini bundle nel carrello':'+ Mini bundle ('+mnN+' slide)'}</button>`:'';
     const mnLine=mnShow?`<div class="mini-l">Mini bundle: ${esc(mn[2])}, slide ${mn[0]}-${mn[1]}</div>`:'';
     const pkBtn=pk.length>1?`<button class="btn ghost add add-pk" aria-pressed="${pkOn}" data-pks="${pk.join(',')}">${pkOn?'✓ Pacchetto nel carrello':'+ Pacchetto '+esc(it[2])+' ('+pk.length+' slide)'}</button>`:'';
-    return `<li class="hit"><div class="th" style="${thumbStyle(d[8],it[1],160)}" role="img" aria-label="Anteprima della slide ${it[1]}"></div><div><div class="where">slide ${it[1]} <small>${esc(it[2]||'')}</small></div>${info}<div class="acts"><a class="btn" href="${slideLink(d,it[1])}" target="_top">Apri la slide</a><button class="btn ghost add" aria-pressed="${on}" data-k="${d[8]}" data-s="${it[1]}" data-i="${ITEMS.indexOf(it)}">${on?'✓ Nel carrello':'+ Carrello'}</button>${pkBtn}${mnBtn}${unBtn}</div>${mnLine}</div></li>`;
+    return `<li class="hit"><div class="th" style="${thumbStyle(d[8],it[1],160)}" role="img" aria-label="Anteprima della slide ${it[1]}"></div><div><div class="where">slide ${it[1]} <small>${esc(it[2]||'')}</small></div>${info}<div class="acts"><a class="btn" href="${slideLink(d,it[1])}" target="_blank" rel="noopener" data-nt="1">Apri la slide</a><button class="btn ghost add" aria-pressed="${on}" data-k="${d[8]}" data-s="${it[1]}" data-i="${ITEMS.indexOf(it)}">${on?'✓ Nel carrello':'+ Carrello'}</button>${pkBtn}${mnBtn}${unBtn}</div>${mnLine}</div></li>`;
   }
   const where=d[1]==='P'?`slide ${it[1]}<small>${esc(it[2]||'')}</small>`:d[1]==='D'?`pag. ${it[1]}`:`n. ${it[1]}`;
   const L=aud?`https:\/\/drive.google.com/file/d/${aud}/view`:(d[1]==='P'?slideLink(d,it[1]):docLink(d));
@@ -490,7 +490,7 @@ function hitHTML(it,d,toks){
 function bundleRow(k,a,z,title,sub,hits){
   let all=true; for(let x=a;x<=z;x++) if(!inCart(k,x)){ all=false; break; }
   const d=DOCS.find(x=>x[8]===k); if(!d) return '';
-  return `<li class="brow"><div class="th" style="${thumbStyle(k,a,160)}" role="img" aria-label="Prima slide"></div><div><b class="bt">${esc(title)}</b><div class="bm">${esc(d[0])}, slide ${a}-${z} (${z-a+1} slide)${hits?`, ${hits} risultat${hits===1?'o':'i'}`:''}</div>${sub?`<div class="bs">${esc(sub)}</div>`:''}<div class="acts"><button class="btn ghost add add-un" aria-pressed="${all}" data-k="${k}" data-a="${a}" data-b="${z}" data-l="${esc(title)}">${all?'✓ Nel carrello':'+ Aggiungi '+(z-a+1)+' slide'}</button><a class="btn ghost" href="${slideLink(d,a)}" target="_top">Apri la prima slide</a></div></div></li>`;
+  return `<li class="brow"><div class="th" style="${thumbStyle(k,a,160)}" role="img" aria-label="Prima slide"></div><div><b class="bt">${esc(title)}</b><div class="bm">${esc(d[0])}, slide ${a}-${z} (${z-a+1} slide)${hits?`, ${hits} risultat${hits===1?'o':'i'}`:''}</div>${sub?`<div class="bs">${esc(sub)}</div>`:''}<div class="acts"><button class="btn ghost add add-un" aria-pressed="${all}" data-k="${k}" data-a="${a}" data-b="${z}" data-l="${esc(title)}">${all?'✓ Nel carrello':'+ Aggiungi '+(z-a+1)+' slide'}</button><a class="btn ghost newtab" href="${slideLink(d,a)}" target="_blank" rel="noopener">Apri la prima slide</a></div></div></li>`;
 }
 function groupCard(g,toks){
   const d=DOCS[g.di], isU=d[1]==='U', show=st.open[g.di]?g.h.length:Math.min(4,g.h.length), L=docLink(d);
@@ -624,7 +624,7 @@ function renderMain(out){
   out.querySelectorAll('.tchip').forEach(b=>b.onclick=()=>{st.q=b.dataset.t;st.open={};st.allTopics=false;document.getElementById('q').value=st.q;render();document.getElementById('out').scrollIntoView({behavior:'smooth'});});
 }
 function saveState(){ try{ sessionStorage.setItem('cerca-stato',JSON.stringify({st:{q:st.q,kind:st.kind,lv:st.lv,ty:st.ty,open:st.open,allTopics:st.allTopics,allFiles:st.allFiles,fold:st.fold,foldQ:st.foldQ},y:window.scrollY})); }catch(e){} }
-document.addEventListener('click',e=>{ const a=e.target.closest&&e.target.closest('a[href]'); if(!a||!/^https?:/.test(a.href)) return; a.target='_top'; saveState(); });
+document.addEventListener('click',e=>{ const a=e.target.closest&&e.target.closest('a[href]'); if(!a||!/^https?:/.test(a.href)) return; saveState(); if(a.target==='_blank') return; a.target='_top'; });
 function render(){ const out=document.getElementById('out'); if(!DOCS.length) return; renderMain(out); }
 /* ---- carrello ---- */
 function cartSlidesCount(){ return CART.reduce((sum,c)=>sum+(c.u?(c.n||1):1),0); }
