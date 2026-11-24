@@ -297,6 +297,23 @@ html,body{max-width:100%;overflow-x:hidden}
  .tchip{font-size:13px}
 }
 .mini-l{font-size:12px;color:#8a7a68;margin-top:6px}
+
+.cats{display:grid;gap:12px}
+.cat{background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);overflow:hidden}
+.cat>summary{cursor:pointer;padding:15px 18px;font:700 18px var(--display);color:var(--deep)}
+.cat>summary small,.sub>summary small{font:600 13px var(--body);color:var(--muted);margin-left:6px}
+.cat[open]>summary{border-bottom:1px solid var(--line)}
+.catin{padding:12px;display:grid;gap:10px}
+.sub{border:1px solid var(--line);border-radius:16px;background:var(--bg)}
+.sub>summary{cursor:pointer;padding:11px 14px;font-weight:700;color:var(--accent)}
+.subin{padding:6px 10px 12px;display:grid;gap:10px}
+.docs{display:grid;gap:12px}
+.blist{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.brow{display:grid;grid-template-columns:160px 1fr;gap:12px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:8px;align-items:start}
+.brow.ud{grid-template-columns:150px 1fr}
+.brow .bt{color:var(--deep)} .brow .bm{font-size:13px;color:var(--muted);margin-top:2px} .brow .bs{font-size:12px;color:#8a7a68;margin-top:2px}
+.brow .acts{margin-top:6px}
+@media (max-width:700px){.brow,.brow.ud{grid-template-columns:minmax(0,1fr)}}
 </style>
 </head>
 <body>
@@ -358,7 +375,7 @@ const NOAUDIO={
 };
 const TYPES=[['','Tutto'],['S','Spiegazioni'],['E','Esercizi'],['L','Letture'],['A','Ascolti'],['T','Test'],['X','Soluzioni'],['I','Indici e sillabi']];
 const TYN={S:'spiegazione',E:'esercizio',L:'lettura',A:'ascolto',T:'test',X:'soluzioni',I:'indice'};
-const st={q:'',kind:'',lv:'',ty:'',tab:'res',open:{}};
+const st={fold:{},foldQ:null,q:'',kind:'',lv:'',ty:'',tab:'res',open:{}};
 let BACK=null; try{ BACK=JSON.parse(sessionStorage.getItem('cerca-stato')||'null'); sessionStorage.removeItem('cerca-stato'); }catch(e){ BACK=null; }
 if(BACK&&BACK.st){ Object.assign(st,BACK.st); }
 let UNITS={},MINI={},DATA=null,DOCS=[],ITEMS=[],HAY=[],CART=[]; let CODE=''; try{CODE=localStorage.getItem('cerca-codice')||''}catch(e){}
@@ -470,39 +487,68 @@ function hitHTML(it,d,toks){
   const thumb=it[8]?(()=>{const [rk,rs]=it[8].split(':'); return `<div class="th" style="${thumbStyle(rk,+rs,160)}" role="img" aria-label="Slide dove si usa questo audio"></div>`;})():`<div class="where">${where}</div>`;
   return `<li class="hit ${it[8]?'':'np'}">${thumb}<div>${it[8]?`<div class="where">${esc(it[2]||'')}</div>`:''}${info}<div class="acts">${L?`<a class="btn ${aud?'':'ghost'}" href="${L}" target="_top">${aud?'Ascolta':d[1]==='D'?'Apri il PDF':'Apri'}</a>`:''}${ref}</div></div></li>`;
 }
+function bundleRow(k,a,z,title,sub,hits){
+  let all=true; for(let x=a;x<=z;x++) if(!inCart(k,x)){ all=false; break; }
+  const d=DOCS.find(x=>x[8]===k); if(!d) return '';
+  return `<li class="brow"><div class="th" style="${thumbStyle(k,a,160)}" role="img" aria-label="Prima slide"></div><div><b class="bt">${esc(title)}</b><div class="bm">${esc(d[0])}, slide ${a}-${z} (${z-a+1} slide)${hits?`, ${hits} risultat${hits===1?'o':'i'}`:''}</div>${sub?`<div class="bs">${esc(sub)}</div>`:''}<div class="acts"><button class="btn ghost add add-un" aria-pressed="${all}" data-k="${k}" data-a="${a}" data-b="${z}" data-l="${esc(title)}">${all?'✓ Nel carrello':'+ Aggiungi '+(z-a+1)+' slide'}</button><a class="btn ghost" href="${slideLink(d,a)}" target="_top">Apri la prima slide</a></div></div></li>`;
+}
+function groupCard(g,toks){
+  const d=DOCS[g.di], isU=d[1]==='U', show=st.open[g.di]?g.h.length:Math.min(4,g.h.length), L=docLink(d);
+  let headLeft='', headRight='';
+  if(isU){
+    const on=inCartUD(d[7]);
+    headLeft=`<div class="ud-head">${udThumbBox(d[7],d[2]||d[6],d[0],d[5])}<div><h3 class="dt">${esc(d[0])}</h3><div class="dm"><span class="badge k-U">${KIND.U}</span>${d[2]?`<span>${esc(d[2])}</span>`:''}<span>${d[5]} slide</span><span>${g.h.length} risultat${g.h.length===1?'o':'i'}</span></div></div></div>`;
+    headRight=`<div class="acts"><button class="btn ghost add add-ud" aria-pressed="${on}" data-di="${g.di}">${on?'✓ Nel carrello':'+ Bundle ('+d[5]+' slide)'}</button>${L?`<a class="btn" href="${L}" target="_top">Apri su Google</a>`:''}</div>`;
+  } else {
+    const grpIdx=d[1]==='P'&&d[8]?g.h.map(x=>x[1]).filter(idx=>ITEMS[idx][3]!=='Tracce audio'):[];
+    const grpOn=grpIdx.length>1&&grpIdx.every(idx=>inCart(d[8],ITEMS[idx][1]));
+    const grpBtn=grpIdx.length>1?`<button class="btn ghost add add-pk" aria-pressed="${grpOn}" data-pks="${grpIdx.join(',')}">${grpOn?'✓ Tutte nel carrello':'+ Tutte le '+grpIdx.length+' slide'}</button>`:'';
+    headLeft=`<div><h3 class="dt">${esc(d[0])}</h3><div class="dm"><span class="badge k-${d[1]}">${KIND[d[1]]}</span>${d[2]?`<span>${esc(d[2])}</span>`:''}<span>${g.h.length} risultat${g.h.length===1?'o':'i'}</span></div></div>`;
+    headRight=`<div class="acts">${grpBtn}${L?`<a class="btn ghost" href="${L}" target="_top">Apri il file</a>`:''}</div>`;
+  }
+  let html=`<section class="doc"><div class="dh">${headLeft}${headRight}</div><ul class="${isU?'ud-sum':'hits'}">`;
+  if(NOAUDIO[d[8]]) html+=`<div class="noaudio" role="note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 1 21h22L12 2z" fill="#e2401c"/><rect x="11" y="9" width="2" height="6" rx="1" fill="#fff"/><circle cx="12" cy="17.6" r="1.2" fill="#fff"/></svg><div>${NOAUDIO[d[8]]}</div></div>`;
+  for(const [sc,i] of g.h.slice(0,show)) html+=hitHTML(ITEMS[i],d,toks);
+  return html+'</ul>'+(g.h.length>show?`<button class="more" data-di="${g.di}">${isU?`Vedi tutte le ${g.h.length} slide trovate`:`Mostra tutti i ${g.h.length} risultati`}</button>`:'')+'</section>';
+}
+function fold(key,summary,inner,cls){ return `<details class="${cls}" data-f="${key}"${st.fold[key]?' open':''}><summary>${summary}</summary><div class="${cls}in">${inner}</div></details>`; }
 function renderResInto(out,r){
   const {toks,groups}=r;
   if(!toks.length){out.innerHTML='<p class="empty">Scrivi almeno una parola di due lettere.</p>';return}
+  if(st.foldQ!==st.q){ st.fold={}; st.foldQ=st.q; }
   const nh=groups.reduce((s,g)=>s+g.h.length,0);
-  const nUD=groups.filter(g=>DOCS[g.di][1]==='U').length, nOther=groups.length-nUD;
-  let html=`<h2 class="rh">Risultati</h2><p class="summary">${nh.toLocaleString('it')} risultati in ${groups.length} file per “${esc(st.q)}”${st.ty?'':', indici e sillabi esclusi'}</p>`;
-  if(!groups.length) html+='<p class="empty">Nessun risultato. Prova con meno parole, con la radice (es. “congiunt”) o togli i filtri.</p>';
-  html+='<div style="display:grid;gap:12px">';
-  let lastCat=-1; const catN=[0,0,0]; groups.slice(0,50).forEach(g=>{const k=DOCS[g.di][1]; catN[k==='P'?0:k==='U'?1:2]++;}); const nCats=catN.filter(Boolean).length;
-  const CATL=['Materiali 1:1, i libri in slide','Materiali UD, lezioni già pronte su Google','PDF, audio ed esercizi online'];
-  for(const g of groups.slice(0,50)){
-    const d=DOCS[g.di], isU=d[1]==='U', show=st.open[g.di]?g.h.length:Math.min(4,g.h.length), L=docLink(d);
-    const cat=d[1]==='P'?0:isU?1:2;
-    if(nCats>1&&cat!==lastCat){ html+=`<div class="sec-div${cat===0?' p11':''}"><b>${CATL[cat]}</b><small>${catN[cat]} file</small></div>`; lastCat=cat; }
-    let headLeft='', headRight='';
-    if(isU){
-      const on=inCartUD(d[7]);
-      headLeft=`<div class="ud-head">${udThumbBox(d[7],d[2]||d[6],d[0],d[5])}<div><h3 class="dt">${esc(d[0])}</h3><div class="dm"><span class="badge k-U">${KIND.U}</span>${d[2]?`<span>${esc(d[2])}</span>`:''}<span>${d[5]} slide</span><span>${g.h.length} risultat${g.h.length===1?'o':'i'}</span></div></div></div>`;
-      headRight=`<div class="acts"><button class="btn ghost add add-ud" aria-pressed="${on}" data-di="${g.di}">${on?'✓ Nel carrello':'+ Bundle ('+d[5]+' slide)'}</button>${L?`<a class="btn" href="${L}" target="_top">Apri su Google</a>`:''}</div>`;
+  let html=`<h2 class="rh">Risultati</h2><p class="summary">${nh.toLocaleString('it')} risultati in ${groups.length} file per “${esc(st.q)}”${st.ty?'':', indici e sillabi esclusi'}. Apri una categoria.</p>`;
+  if(!groups.length){ out.innerHTML=html+'<p class="empty">Nessun risultato. Prova con meno parole, con la radice (es. “congiunt”) o togli i filtri.</p>'; return; }
+  const CATS=[['P','Materiali 1:1, i libri in slide'],['U','Materiali UD, lezioni già pronte'],['D','PDF'],['A','Audio'],['W','Esercizi online e canzoni']];
+  const MAXL=40, more=(n)=>n>MAXL?`<p class="note">Mostro i primi ${MAXL} su ${n}: aggiungi una parola o un filtro per restringere.</p>`:'';
+  html+='<div class="cats">';
+  for(const [k,lab] of CATS){
+    const gs=groups.filter(g=>DOCS[g.di][1]===k); if(!gs.length) continue;
+    const nk=gs.reduce((s,g)=>s+g.h.length,0);
+    let inner='';
+    if(k==='P'){
+      const U=new Map(), M=new Map();
+      for(const g of gs){ const d=DOCS[g.di], key=d[8]; for(const [sc,i] of g.h){ const sl=ITEMS[i][1];
+        const un=(UNITS[key]||[]).find(u=>u[0]<=sl&&sl<=u[1]); if(un&&un[1]>un[0]){ const id=key+'|'+un[0]; const e=U.get(id)||{k:key,u:un,n:0,sc:0}; e.n++; e.sc+=sc; U.set(id,e); }
+        const mn=(MINI[key]||[]).find(u=>u[0]<=sl&&sl<=u[1]); if(mn&&mn[1]>mn[0]){ const id=key+'|'+mn[0]; const e=M.get(id)||{k:key,u:mn,un,n:0,sc:0}; e.n++; e.sc+=sc; M.set(id,e); } } }
+      const uL=[...U.values()].sort((a,b)=>b.sc-a.sc), mL=[...M.values()].sort((a,b)=>b.sc-a.sc);
+      const tit=l=>{ const p=(l||'').split(' - '); return /^[ABC][12]$/.test(p[0])?[p[1]||l,p.slice(2).join(' - ')]:[p[0],p.slice(1).join(' - ')]; };
+      const uH='<ul class="blist">'+uL.slice(0,MAXL).map(e=>{ const [t,sub]=tit(e.u[2]); return bundleRow(e.k,e.u[0],e.u[1],t,sub,e.n); }).join('')+'</ul>'+more(uL.length);
+      const mH='<ul class="blist">'+mL.slice(0,MAXL).map(e=>bundleRow(e.k,e.u[0],e.u[1],e.u[2],e.un?'Unità: '+tit(e.un[2])[0]:'',e.n)).join('')+'</ul>'+more(mL.length);
+      const sH='<div class="docs">'+gs.slice(0,50).map(g=>groupCard(g,toks)).join('')+'</div>';
+      inner=fold('s-P-un',`Bundle delle unità <small>${uL.length}</small>`,uH,'sub')+fold('s-P-mn',`Mini bundle per situazione <small>${mL.length}</small>`,mH,'sub')+fold('s-P-sl',`Slide singole <small>${nk} in ${gs.length} libri</small>`,sH,'sub');
+    } else if(k==='U'){
+      const bH='<ul class="blist">'+gs.slice(0,MAXL).map(g=>{ const d=DOCS[g.di], on=inCartUD(d[7]), L=docLink(d);
+        return `<li class="brow ud">${udThumbBox(d[7],d[2]||d[6],d[0],d[5])}<div><b class="bt">${esc(d[0])}</b><div class="bm">${d[5]} slide, ${g.h.length} risultat${g.h.length===1?'o':'i'}</div><div class="acts"><button class="btn ghost add add-ud" aria-pressed="${on}" data-di="${g.di}">${on?'✓ Nel carrello':'+ Aggiungi la lezione intera'}</button>${L?`<a class="btn ghost" href="${L}" target="_top">Apri su Google</a>`:''}</div></div></li>`; }).join('')+'</ul>'+more(gs.length);
+      const sH='<div class="docs">'+gs.slice(0,50).map(g=>groupCard(g,toks)).join('')+'</div>';
+      inner=fold('s-U-b',`Bundle, lezioni UD intere <small>${gs.length}</small>`,bH,'sub')+fold('s-U-sl',`Slide singole <small>${nk}</small>`,sH,'sub');
     } else {
-      const grpIdx=d[1]==='P'&&d[8]?g.h.map(x=>x[1]).filter(idx=>ITEMS[idx][3]!=='Tracce audio'):[];
-      const grpOn=grpIdx.length>1&&grpIdx.every(idx=>inCart(d[8],ITEMS[idx][1]));
-      const grpBtn=grpIdx.length>1?`<button class="btn ghost add add-pk" aria-pressed="${grpOn}" data-pks="${grpIdx.join(',')}">${grpOn?'✓ Tutte nel carrello':'+ Tutte le '+grpIdx.length+' slide'}</button>`:'';
-      headLeft=`<div><h3 class="dt">${esc(d[0])}</h3><div class="dm"><span class="badge k-${d[1]}">${KIND[d[1]]}</span>${d[2]?`<span>${esc(d[2])}</span>`:''}<span>${g.h.length} risultat${g.h.length===1?'o':'i'}</span></div></div>`;
-      headRight=`<div class="acts">${grpBtn}${L?`<a class="btn ghost" href="${L}" target="_top">Apri il file</a>`:''}</div>`;
+      inner='<div class="docs">'+gs.slice(0,50).map(g=>groupCard(g,toks)).join('')+'</div>';
     }
-    html+=`<section class="doc"><div class="dh">${headLeft}${headRight}</div><ul class="${isU?'ud-sum':'hits'}">`;
-    if(NOAUDIO[d[8]]) html+=`<div class="noaudio" role="note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 1 21h22L12 2z" fill="#e2401c"/><rect x="11" y="9" width="2" height="6" rx="1" fill="#fff"/><circle cx="12" cy="17.6" r="1.2" fill="#fff"/></svg><div>${NOAUDIO[d[8]]}</div></div>`;
-    for(const [sc,i] of g.h.slice(0,show)) html+=hitHTML(ITEMS[i],d,toks);
-    html+='</ul>'+(g.h.length>show?`<button class="more" data-di="${g.di}">${isU?`Vedi tutte le ${g.h.length} slide trovate`:`Mostra tutti i ${g.h.length} risultati`}</button>`:'')+'</section>';
+    html+=fold('c-'+k,`${lab} <small>${nk} risultat${nk===1?'o':'i'} in ${gs.length} file</small>`,inner,'cat');
   }
-  html+='</div>'+(groups.length>50?'<p class="note">Mostro i primi 50 file: aggiungi una parola o un filtro per restringere.</p>':'');
-  out.innerHTML=html;
+  out.innerHTML=html+'</div>';
+  out.querySelectorAll('details[data-f]').forEach(dt=>dt.addEventListener('toggle',()=>{ st.fold[dt.dataset.f]=dt.open; }));
 }
 function toggleCart(b){
   const k=b.dataset.k, s=+b.dataset.s, it=ITEMS[+b.dataset.i], d=DOCS[it[0]];
@@ -577,7 +623,7 @@ function renderMain(out){
   const at=document.getElementById('alltop'); if(at) at.onclick=()=>{st.allTopics=!st.allTopics; render();};
   out.querySelectorAll('.tchip').forEach(b=>b.onclick=()=>{st.q=b.dataset.t;st.open={};st.allTopics=false;document.getElementById('q').value=st.q;render();document.getElementById('out').scrollIntoView({behavior:'smooth'});});
 }
-function saveState(){ try{ sessionStorage.setItem('cerca-stato',JSON.stringify({st:{q:st.q,kind:st.kind,lv:st.lv,ty:st.ty,open:st.open,allTopics:st.allTopics,allFiles:st.allFiles},y:window.scrollY})); }catch(e){} }
+function saveState(){ try{ sessionStorage.setItem('cerca-stato',JSON.stringify({st:{q:st.q,kind:st.kind,lv:st.lv,ty:st.ty,open:st.open,allTopics:st.allTopics,allFiles:st.allFiles,fold:st.fold,foldQ:st.foldQ},y:window.scrollY})); }catch(e){} }
 document.addEventListener('click',e=>{ const a=e.target.closest&&e.target.closest('a[href]'); if(!a||!/^https?:/.test(a.href)) return; a.target='_top'; saveState(); });
 function render(){ const out=document.getElementById('out'); if(!DOCS.length) return; renderMain(out); }
 /* ---- carrello ---- */
