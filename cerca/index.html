@@ -162,6 +162,7 @@ button.chip:active,.tchip:active,a.btn:active,button.btn:active{transform:transl
 .topics::after{content:"";position:absolute;right:-26px;top:-26px;width:90px;height:90px;border-radius:50%;background:var(--sun);opacity:.9}
 .topics h2{position:relative;z-index:1}
 .tchips{position:relative;z-index:1}
+#tbox>.topics,#tbox>.fold{margin:12px 0 14px}
 .tchip{background:var(--bg);border:2px solid #e9ddd4;box-shadow:0 3px 0 #e9ddd4;font-family:var(--body);color:var(--ink)}
 .tchip:hover{border-color:var(--plum)}
 .tchip.on{background:var(--accent);border-color:var(--accent);box-shadow:0 3px 0 var(--accent-dk)}
@@ -339,7 +340,8 @@ html,body{max-width:100%;overflow-x:hidden}
 
   <div class="search">
     <label for="q" class="hint">Scrivi un argomento o una parola: cerca nei manuali 1:1, nelle lezioni vergini (UD), nei PDF, negli audio e negli esercizi online. Per “uno o l'altro” usa “o”: <i>passato prossimo o imperfetto</i>.</label>
-    <input id="q" type="search" autocomplete="off" value="" placeholder="Ciao Dolcetto, che lezione vuoi creare oggi?" aria-label="Ciao Dolcetto, che lezione vuoi creare oggi?">
+    <input id="q" type="search" autocomplete="off" value="" placeholder="Ciao Dolcetto, che cosa stai cercando?" aria-label="Ciao Dolcetto, che cosa stai cercando?">
+    <div id="tbox"></div>
     <div class="row" id="kinds"><span class="lbl">Risorsa</span></div>
     <div class="row" id="types"><span class="lbl">Tipo</span></div>
     <div class="row" id="levels"><span class="lbl">Livello</span></div>
@@ -608,12 +610,12 @@ function filesHTML(){
   return html||'<p class="empty">Nessun file con questi filtri.</p>';
 }
 function renderMain(out){
-  const alts=parse(st.q);
+  const alts=parse(st.q), tbox=document.getElementById('tbox');
   if(!alts.length){
-    out.innerHTML=topicsHTML(alts,null)+'<section class="browse">'+filesHTML()+'</section>';
+    tbox.innerHTML=topicsHTML(alts,null); out.innerHTML='<section class="browse">'+filesHTML()+'</section>';
   } else {
     const r=search(); const tmp=document.createElement('div'); renderResInto(tmp,r);
-    out.innerHTML=topicsHTML(alts,r.groups); out.appendChild(tmp);
+    tbox.innerHTML=topicsHTML(alts,r.groups); out.innerHTML=''; out.appendChild(tmp);
     tmp.querySelectorAll('.more').forEach(b=>b.onclick=()=>{st.open[b.dataset.di]=1;render()});
     tmp.querySelectorAll('button.add-ud').forEach(b=>b.onclick=()=>toggleUdBundle(b));
     tmp.querySelectorAll('button.add-pk').forEach(b=>b.onclick=()=>togglePacket(b));
@@ -621,7 +623,7 @@ function renderMain(out){
     tmp.querySelectorAll('button.add:not(.add-ud):not(.add-pk):not(.add-un)').forEach(b=>b.onclick=()=>toggleCart(b));
   }
   const at=document.getElementById('alltop'); if(at) at.onclick=()=>{st.allTopics=!st.allTopics; render();};
-  out.querySelectorAll('.tchip').forEach(b=>b.onclick=()=>{st.q=b.dataset.t;st.open={};st.allTopics=false;document.getElementById('q').value=st.q;render();document.getElementById('out').scrollIntoView({behavior:'smooth'});});
+  tbox.querySelectorAll('.tchip').forEach(b=>b.onclick=()=>{st.q=b.dataset.t;st.open={};st.allTopics=false;document.getElementById('q').value=st.q;render();document.getElementById('out').scrollIntoView({behavior:'smooth'});});
 }
 function saveState(){ try{ sessionStorage.setItem('cerca-stato',JSON.stringify({st:{q:st.q,kind:st.kind,lv:st.lv,ty:st.ty,open:st.open,allTopics:st.allTopics,allFiles:st.allFiles,fold:st.fold,foldQ:st.foldQ},y:window.scrollY})); }catch(e){} }
 document.addEventListener('click',e=>{ const a=e.target.closest&&e.target.closest('a[href]'); if(!a||!/^https?:/.test(a.href)) return; saveState(); if(a.target==='_blank'){ e.preventDefault(); const w=window.open(a.href,'_blank'); if(w) w.opener=null; else location.href=a.href; return; } a.target='_top'; });
