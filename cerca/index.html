@@ -296,6 +296,7 @@ html,body{max-width:100%;overflow-x:hidden}
  input#q{font-size:14px;padding:11px 10px}
  .tchip{font-size:13px}
 }
+.mini-l{font-size:12px;color:#8a7a68;margin-top:6px}
 </style>
 </head>
 <body>
@@ -360,7 +361,7 @@ const TYN={S:'spiegazione',E:'esercizio',L:'lettura',A:'ascolto',T:'test',X:'sol
 const st={q:'',kind:'',lv:'',ty:'',tab:'res',open:{}};
 let BACK=null; try{ BACK=JSON.parse(sessionStorage.getItem('cerca-stato')||'null'); sessionStorage.removeItem('cerca-stato'); }catch(e){ BACK=null; }
 if(BACK&&BACK.st){ Object.assign(st,BACK.st); }
-let UNITS={},DATA=null,DOCS=[],ITEMS=[],HAY=[],CART=[]; let CODE=''; try{CODE=localStorage.getItem('cerca-codice')||''}catch(e){}
+let UNITS={},MINI={},DATA=null,DOCS=[],ITEMS=[],HAY=[],CART=[]; let CODE=''; try{CODE=localStorage.getItem('cerca-codice')||''}catch(e){}
 try{CART=JSON.parse(localStorage.getItem('leo-carrello')||'[]')}catch(e){CART=[]}
 try{document.getElementById('ltitle').value=localStorage.getItem('leo-carrello-titolo')||''}catch(e){}
 const saveCart=()=>{try{localStorage.setItem('leo-carrello',JSON.stringify(CART))}catch(e){} cartUI()};
@@ -425,7 +426,7 @@ function search(){
     if(ty.includes('S')) sc+=2; if(d[1]==='P'||d[1]==='U'||d[1]==='W') sc+=1; if(NOAUDIO[d[8]]&&ty.includes('A')) sc-=3;
     if(!by.has(it[0])) by.set(it[0],[]); by.get(it[0]).push([sc,i]);
   }
-  const groups=[...by.entries()].map(([di,h])=>{h.sort((a,b)=>b[0]-a[0]||ITEMS[a[1]][1]-ITEMS[b[1]][1]); const top=h.slice(0,5).reduce((s,x)=>s+x[0],0); return {di,h,best:top*10+Math.min(h.length,30),ud:DOCS[di][1]==='U'?0:1,low:NOAUDIO[DOCS[di][8]]?1:0,up:DOCS[di][1]==='W'&&h.some(x=>x[0]>=8)?1:0}}).sort((a,b)=>a.ud-b.ud||a.low-b.low||b.up-a.up||b.best-a.best);
+  const groups=[...by.entries()].map(([di,h])=>{h.sort((a,b)=>b[0]-a[0]||ITEMS[a[1]][1]-ITEMS[b[1]][1]); const top=h.slice(0,5).reduce((s,x)=>s+x[0],0); return {di,h,best:top*10+Math.min(h.length,30),ud:DOCS[di][1]==='P'?0:DOCS[di][1]==='U'?1:2,low:NOAUDIO[DOCS[di][8]]?1:0,up:DOCS[di][1]==='W'&&h.some(x=>x[0]>=8)?1:0}}).sort((a,b)=>a.ud-b.ud||a.low-b.low||b.up-a.up||b.best-a.best);
   return {toks,groups};
 }
 const inCart=(key,s)=>CART.some(c=>c.k===key&&c.s===s);
@@ -455,8 +456,12 @@ function hitHTML(it,d,toks){
     const on=inCart(d[8],it[1]), pk=packItems(it), pkOn=pk.length>1&&pk.every(idx=>inCart(d[8],ITEMS[idx][1]));
     const un=(UNITS[d[8]]||[]).find(u=>u[0]<=it[1]&&it[1]<=u[1]), unN=un?un[1]-un[0]+1:0, unOn=un&&unN>1&&(()=>{for(let s=un[0];s<=un[1];s++) if(!inCart(d[8],s)) return false; return true;})();
     const unBtn=un&&unN>1?`<button class="btn ghost add add-un" aria-pressed="${unOn}" data-k="${d[8]}" data-a="${un[0]}" data-b="${un[1]}" data-l="${esc(un[2])}" title="${esc(un[2])}">${unOn?'✓ Unità nel carrello':'+ Bundle unità ('+unN+' slide)'}</button>`:'';
+    const mn=(MINI[d[8]]||[]).find(u=>u[0]<=it[1]&&it[1]<=u[1]), mnN=mn?mn[1]-mn[0]+1:0, mnShow=mn&&mnN>1&&!(un&&mn[0]===un[0]&&mn[1]===un[1]);
+    const mnOn=mnShow&&(()=>{for(let s=mn[0];s<=mn[1];s++) if(!inCart(d[8],s)) return false; return true;})();
+    const mnBtn=mnShow?`<button class="btn ghost add add-un" aria-pressed="${mnOn}" data-k="${d[8]}" data-a="${mn[0]}" data-b="${mn[1]}" data-l="${esc(mn[2])}" title="${esc(mn[2])}">${mnOn?'✓ Mini bundle nel carrello':'+ Mini bundle ('+mnN+' slide)'}</button>`:'';
+    const mnLine=mnShow?`<div class="mini-l">Mini bundle: ${esc(mn[2])}, slide ${mn[0]}-${mn[1]}</div>`:'';
     const pkBtn=pk.length>1?`<button class="btn ghost add add-pk" aria-pressed="${pkOn}" data-pks="${pk.join(',')}">${pkOn?'✓ Pacchetto nel carrello':'+ Pacchetto '+esc(it[2])+' ('+pk.length+' slide)'}</button>`:'';
-    return `<li class="hit"><div class="th" style="${thumbStyle(d[8],it[1],160)}" role="img" aria-label="Anteprima della slide ${it[1]}"></div><div><div class="where">slide ${it[1]} <small>${esc(it[2]||'')}</small></div>${info}<div class="acts"><a class="btn" href="${slideLink(d,it[1])}" target="_top">Apri la slide</a><button class="btn ghost add" aria-pressed="${on}" data-k="${d[8]}" data-s="${it[1]}" data-i="${ITEMS.indexOf(it)}">${on?'✓ Nel carrello':'+ Carrello'}</button>${pkBtn}${unBtn}</div></div></li>`;
+    return `<li class="hit"><div class="th" style="${thumbStyle(d[8],it[1],160)}" role="img" aria-label="Anteprima della slide ${it[1]}"></div><div><div class="where">slide ${it[1]} <small>${esc(it[2]||'')}</small></div>${info}<div class="acts"><a class="btn" href="${slideLink(d,it[1])}" target="_top">Apri la slide</a><button class="btn ghost add" aria-pressed="${on}" data-k="${d[8]}" data-s="${it[1]}" data-i="${ITEMS.indexOf(it)}">${on?'✓ Nel carrello':'+ Carrello'}</button>${pkBtn}${mnBtn}${unBtn}</div>${mnLine}</div></li>`;
   }
   const where=d[1]==='P'?`slide ${it[1]}<small>${esc(it[2]||'')}</small>`:d[1]==='D'?`pag. ${it[1]}`:`n. ${it[1]}`;
   const L=aud?`https:\/\/drive.google.com/file/d/${aud}/view`:(d[1]==='P'?slideLink(d,it[1]):docLink(d));
@@ -473,13 +478,12 @@ function renderResInto(out,r){
   let html=`<h2 class="rh">Risultati</h2><p class="summary">${nh.toLocaleString('it')} risultati in ${groups.length} file per “${esc(st.q)}”${st.ty?'':', indici e sillabi esclusi'}</p>`;
   if(!groups.length) html+='<p class="empty">Nessun risultato. Prova con meno parole, con la radice (es. “congiunt”) o togli i filtri.</p>';
   html+='<div style="display:grid;gap:12px">';
-  let shownUD=false, shownOther=false;
+  let lastCat=-1; const catN=[0,0,0]; groups.slice(0,50).forEach(g=>{const k=DOCS[g.di][1]; catN[k==='P'?0:k==='U'?1:2]++;}); const nCats=catN.filter(Boolean).length;
+  const CATL=['Materiali 1:1, i libri in slide','Materiali UD, lezioni già pronte su Google','PDF, audio ed esercizi online'];
   for(const g of groups.slice(0,50)){
     const d=DOCS[g.di], isU=d[1]==='U', show=st.open[g.di]?g.h.length:Math.min(4,g.h.length), L=docLink(d);
-    if(nUD&&nOther){
-      if(isU&&!shownUD){ html+=`<div class="sec-div"><b>Materiali UD, lezioni già pronte su Google</b><small>${nUD} presentazion${nUD===1?'e':'i'}</small></div>`; shownUD=true; }
-      if(!isU&&!shownOther){ html+=`<div class="sec-div p11"><b>Materiali 1:1 e altre risorse</b><small>${nOther} file</small></div>`; shownOther=true; }
-    }
+    const cat=d[1]==='P'?0:isU?1:2;
+    if(nCats>1&&cat!==lastCat){ html+=`<div class="sec-div${cat===0?' p11':''}"><b>${CATL[cat]}</b><small>${catN[cat]} file</small></div>`; lastCat=cat; }
     let headLeft='', headRight='';
     if(isU){
       const on=inCartUD(d[7]);
@@ -618,7 +622,7 @@ async function load(){
   let b; try{ b=await run('getData',CODE); }catch(e){ if(String(e&&e.message||e).includes('CODICE')){ try{localStorage.removeItem('cerca-codice')}catch(_){} CODE=''; throw new Error('codice di accesso sbagliato, ricarica la pagina e riprova'); } throw e; }
   try{localStorage.setItem('cerca-codice',CODE)}catch(_){}
   const ds=b64blob(b,'application/gzip').stream().pipeThrough(new DecompressionStream('gzip'));
-  DATA=JSON.parse(await new Response(ds).text()); UNITS=DATA.units||{}; DOCS=DATA.docs; ITEMS=DATA.items; document.getElementById('gen').textContent=DATA.generated;
+  DATA=JSON.parse(await new Response(ds).text()); UNITS=DATA.units||{}; MINI=DATA.mini||{}; DOCS=DATA.docs; ITEMS=DATA.items; document.getElementById('gen').textContent=DATA.generated;
   HAY=ITEMS.map(it=>' '+it[5]+' '+norm(it[6]||'').replace(/(audio|url|doc):\S+/g,'')+' '+norm(it[3]||''));
   const c={P:0,U:0,D:0,A:0,W:0},n={P:0,U:0,D:0,A:0,W:0}; DOCS.forEach(d=>{if(c[d[1]]!==undefined) c[d[1]]++}); ITEMS.forEach(it=>{const k=DOCS[it[0]][1]; if(n[k]!==undefined) n[k]++});
   { const ST='<svg class="mq-star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5c.7 5.6 4.9 9.8 10.5 10.5-5.6.7-9.8 4.9-10.5 10.5C11.3 16.9 7.1 12.7 1.5 12 7.1 11.3 11.3 7.1 12 1.5z"/></svg>'; const its=[`<b>${c.P}</b> presentazioni 1:1`,`<b>${c.U}</b> lezioni vergini UD`,`<b>${n.P.toLocaleString('it')}</b> slide 1:1`,`<b>${c.D}</b> PDF`,`<b>${n.D.toLocaleString('it')}</b> pagine`,`<b>${n.A.toLocaleString('it')}</b> file audio`,'ricerca parola per parola','lezioni pronte dal carrello','funziona senza account'];
