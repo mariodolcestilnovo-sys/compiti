@@ -624,7 +624,7 @@ function renderMain(out){
   out.querySelectorAll('.tchip').forEach(b=>b.onclick=()=>{st.q=b.dataset.t;st.open={};st.allTopics=false;document.getElementById('q').value=st.q;render();document.getElementById('out').scrollIntoView({behavior:'smooth'});});
 }
 function saveState(){ try{ sessionStorage.setItem('cerca-stato',JSON.stringify({st:{q:st.q,kind:st.kind,lv:st.lv,ty:st.ty,open:st.open,allTopics:st.allTopics,allFiles:st.allFiles,fold:st.fold,foldQ:st.foldQ},y:window.scrollY})); }catch(e){} }
-document.addEventListener('click',e=>{ const a=e.target.closest&&e.target.closest('a[href]'); if(!a||!/^https?:/.test(a.href)) return; saveState(); if(a.target==='_blank') return; a.target='_top'; });
+document.addEventListener('click',e=>{ const a=e.target.closest&&e.target.closest('a[href]'); if(!a||!/^https?:/.test(a.href)) return; saveState(); if(a.target==='_blank'){ e.preventDefault(); const w=window.open(a.href,'_blank'); if(w) w.opener=null; else location.href=a.href; return; } a.target='_top'; });
 function render(){ const out=document.getElementById('out'); if(!DOCS.length) return; renderMain(out); }
 /* ---- carrello ---- */
 function cartSlidesCount(){ return CART.reduce((sum,c)=>sum+(c.u?(c.n||1):1),0); }
