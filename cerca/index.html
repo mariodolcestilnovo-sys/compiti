@@ -301,12 +301,12 @@ html,body{max-width:100%;overflow-x:hidden}
 .cats{display:grid;gap:12px}
 .cat{background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);overflow:hidden}
 .cat>summary{cursor:pointer;padding:15px 18px;font:700 18px var(--display);color:var(--deep)}
-.cat>summary small,.sub>summary small{font:600 13px var(--body);color:var(--muted);margin-left:6px}
+.cat>summary small,\.rsub>summary small{font:600 13px var(--body);color:var(--muted);margin-left:6px}
 .cat[open]>summary{border-bottom:1px solid var(--line)}
 .catin{padding:12px;display:grid;gap:10px}
-.sub{border:1px solid var(--line);border-radius:16px;background:var(--bg)}
-.sub>summary{cursor:pointer;padding:11px 14px;font-weight:700;color:var(--accent)}
-.subin{padding:6px 10px 12px;display:grid;gap:10px}
+.rsub{border:1px solid var(--line);border-radius:16px;background:var(--bg)}
+.rsub>summary{cursor:pointer;padding:11px 14px;font-weight:700;color:var(--accent)}
+.rsubin{padding:6px 10px 12px;display:grid;gap:10px}
 .docs{display:grid;gap:12px}
 .blist{list-style:none;margin:0;padding:0;display:grid;gap:8px}
 .brow{display:grid;grid-template-columns:160px 1fr;gap:12px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:8px;align-items:start}
@@ -536,12 +536,12 @@ function renderResInto(out,r){
       const uH='<ul class="blist">'+uL.slice(0,MAXL).map(e=>{ const [t,sub]=tit(e.u[2]); return bundleRow(e.k,e.u[0],e.u[1],t,sub,e.n); }).join('')+'</ul>'+more(uL.length);
       const mH='<ul class="blist">'+mL.slice(0,MAXL).map(e=>bundleRow(e.k,e.u[0],e.u[1],e.u[2],e.un?'Unità: '+tit(e.un[2])[0]:'',e.n)).join('')+'</ul>'+more(mL.length);
       const sH='<div class="docs">'+gs.slice(0,50).map(g=>groupCard(g,toks)).join('')+'</div>';
-      inner=fold('s-P-un',`Bundle delle unità <small>${uL.length}</small>`,uH,'sub')+fold('s-P-mn',`Mini bundle per situazione <small>${mL.length}</small>`,mH,'sub')+fold('s-P-sl',`Slide singole <small>${nk} in ${gs.length} libri</small>`,sH,'sub');
+      inner=fold('s-P-un',`Bundle delle unità <small>${uL.length}</small>`,uH,'rsub')+fold('s-P-mn',`Mini bundle per situazione <small>${mL.length}</small>`,mH,'rsub')+fold('s-P-sl',`Slide singole <small>${nk} in ${gs.length} libri</small>`,sH,'rsub');
     } else if(k==='U'){
       const bH='<ul class="blist">'+gs.slice(0,MAXL).map(g=>{ const d=DOCS[g.di], on=inCartUD(d[7]), L=docLink(d);
         return `<li class="brow ud">${udThumbBox(d[7],d[2]||d[6],d[0],d[5])}<div><b class="bt">${esc(d[0])}</b><div class="bm">${d[5]} slide, ${g.h.length} risultat${g.h.length===1?'o':'i'}</div><div class="acts"><button class="btn ghost add add-ud" aria-pressed="${on}" data-di="${g.di}">${on?'✓ Nel carrello':'+ Aggiungi la lezione intera'}</button>${L?`<a class="btn ghost" href="${L}" target="_top">Apri su Google</a>`:''}</div></div></li>`; }).join('')+'</ul>'+more(gs.length);
       const sH='<div class="docs">'+gs.slice(0,50).map(g=>groupCard(g,toks)).join('')+'</div>';
-      inner=fold('s-U-b',`Bundle, lezioni UD intere <small>${gs.length}</small>`,bH,'sub')+fold('s-U-sl',`Slide singole <small>${nk}</small>`,sH,'sub');
+      inner=fold('s-U-b',`Bundle, lezioni UD intere <small>${gs.length}</small>`,bH,'rsub')+fold('s-U-sl',`Slide singole <small>${nk}</small>`,sH,'rsub');
     } else {
       inner='<div class="docs">'+gs.slice(0,50).map(g=>groupCard(g,toks)).join('')+'</div>';
     }
